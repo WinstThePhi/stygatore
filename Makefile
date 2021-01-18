@@ -1,4 +1,4 @@
-C = clang
+C = gcc
 
 ifeq ($(shell uname -s), Linux)
 TIME_UTIL = code/linux/time_util.c
@@ -16,14 +16,6 @@ build/gen_struct.o: code/gen_struct.c code/layer.h
 
 build/time_util.o: $(TIME_UTIL) code/linux/time_util.h
 	$(C) -c $(TIME_UTIL) -o build/time_util.o
-
-test: run print
-
-run:
-	./build/gen_struct.out test_files/struct.gs
-
-print:
-	cat test_files/struct.h
 
 clean:
 	rm -rf build/*
