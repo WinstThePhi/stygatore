@@ -95,9 +95,9 @@ get_hash(char *str)
 	u64 hash = 5381;
 	s32 c = 0;
 
-	while ((c = *str++))
+	while ((c = *str++)) {
 		hash = ((hash << 5) + hash) + c;
-
+	}
 	return hash;
 }
 
@@ -131,6 +131,9 @@ alloc(u32 size)
 	
 	return result;
 }
+
+#define alloc_array(size, array_num) \
+	alloc(size * array_num)
 
 /* resets arena offset but does not zero memory */
 static inline void
@@ -197,32 +200,36 @@ case token_const:                                 \
 	}
 }
 
-/* prints the token string out to specified stream */
-static void
+/*
+ * Prints the string that token is holding to specified stream.
+ * Returns FALSE if end of file and TRUE if anything else.
+ */
+static b8
 print_token_string(struct Token token, FILE *file)
 {
 	if (token.token_type == TOKEN_END_OF_FILE) {
-		return;
+		return FALSE;
 	}
 	
-	if (token.token_type == TOKEN_WHITESPACE) {
-		u32 string_length = strlen(token.token_data);
-		for (u32 i = 0; i < string_length; ++i) {
-			if (token.token_data[i] == '\n') {
-				fprintf(file, "\\n");
-			} else if (token.token_data[i] == '\t') {
-				fprintf(file, "\\t");
-			} else if (token.token_data[i] == ' ') {
-				fprintf(file, "<space>");
-			} else {
-				fprintf(file, "%c", token.token_data[i]);
-			}
-		}
-		return;
-	}
-	else {
+	if (token.token_type != TOKEN_WHITESPACE) {
 		fprintf(file, "%s", token.token_data);
+		goto print_success;
 	}
+
+	for (u32 i = 0; i < strlen(token.token_data); ++i) {
+		if (token.token_data[i] == '\n') {
+			fprintf(file, "\\n");
+		} else if (token.token_data[i] == '\t') {
+			fprintf(file, "\\t");
+		} else if (token.token_data[i] == ' ') {
+			fprintf(file, "<space>");
+		} else {
+			fprintf(file, "%c", token.token_data[i]);
+		}
+	}
+
+print_success:
+	return TRUE;
 }
 
 /* prints the at pointer of the tokenizer */
@@ -246,7 +253,7 @@ reset_tokenizer(struct Tokenizer *tokenizer)
  * returns FALSE if hits end of file or gets out of array bounds
  * returns TRUE if successfully incremented
  */
-static bool
+static b8
 increment_tokenizer_no_whitespace(struct Tokenizer *tokenizer)
 {
 	do {
@@ -266,7 +273,7 @@ increment_tokenizer_no_whitespace(struct Tokenizer *tokenizer)
  * returns FALSE if hits end of file or out of array bounds
  * returns TRUE if successfully incremented
  */
-static bool
+static b8
 increment_tokenizer_all(struct Tokenizer *tokenizer)
 {
 	if (tokenizer->at->token_type == TOKEN_END_OF_FILE ||
@@ -396,7 +403,7 @@ get_template_hash_table(struct Tokenizer *tokenizer)
 	struct Template_Hash_Table hash_table = {0};
 	hash_table.num = get_number_of_templates(tokenizer);
 	hash_table.templates =
-		(struct Template *)alloc(sizeof(struct Template) * hash_table.num);
+		alloc_array(sizeof(*hash_table.templates), hash_table.num);
 
 	for (u32 i = 0; i < hash_table.num; ++i) {
 
@@ -439,7 +446,8 @@ get_template_type_request(struct Tokenizer file_tokens,
 		get_number_of_template_type_requests(file_tokens);
 
 	type_request.type_names =
-		(char **)alloc(sizeof(char *) * num_of_template_requests);
+		alloc_array(sizeof(*type_request.type_names),
+			    num_of_template_requests);
 
 	reset_tokenizer(&file_tokens);
 	do {
@@ -475,7 +483,7 @@ static void
 replace_type_name(struct Template *templates, char *type_name)
 {
 	reset_tokenizer(&templates->tokenizer);
-	char *type_name_real = (char *)alloc(strlen(type_name));
+	char *type_name_real = alloc(strlen(type_name));
 	strcpy(type_name_real, type_name);
 	
 	do {
@@ -523,7 +531,7 @@ get_string_to_next_whitespace(struct Token *tokens,
 			 tokens[range_end].token_type != TOKEN_PARENTHETICAL_CLOSE);
 	
 	char *token_string = 
-		(char *)alloc(get_range(range_start, range_end));
+		alloc(get_range(range_start, range_end));
 	
 	for (u32 j = 0; j < get_range(range_start, range_end); ++j) {
 		token_string[j] = file_data[range_start + j];
@@ -543,8 +551,8 @@ get_string_to_next_whitespace(struct Token *tokens,
  */
 static char *
 get_string_to_next_non_whitespace(struct Token *tokens, 
-								  char *file_data,
-								  u32 *start_index)
+				  char *file_data,
+				  u32 *start_index)
 {
 	u32 range_start = *start_index;
 	u32 range_end = *start_index;
@@ -560,7 +568,7 @@ get_string_to_next_non_whitespace(struct Token *tokens,
 			 tokens[range_end].token_type != TOKEN_PARENTHETICAL_CLOSE);
 	
 	char *token_string = 
-		(char *)alloc(get_range(range_start, range_end));
+		alloc(get_range(range_start, range_end));
 	
 	for (u32 j = 0; j < get_range(range_start, range_end); ++j) {
 		token_string[j] = file_data[range_start + j];
@@ -581,12 +589,16 @@ get_string_to_next_non_whitespace(struct Token *tokens,
 static struct Tokenizer
 tokenize_file_data(char *file_data)
 {
+	if(file_data == 0) {
+		return (struct Tokenizer){0};
+	}
+
 	u32 file_data_length = strlen(file_data) + 1;
 	
-	struct Tokenizer result = {0};
+	struct Tokenizer tokenizer = {0};
 	
 	struct Token *tokens = 
-		(struct Token *)alloc(sizeof(*tokens) * file_data_length);
+		alloc_array(sizeof(*tokens), file_data_length);
 	
 	for (u32 i = 0; i < file_data_length; ++i) {
 		struct Token token;
@@ -638,8 +650,8 @@ tokenize_file_data(char *file_data)
 			tokens[counter].token_type = tokens[i].token_type;
 			
 			token_string = get_string_to_next_whitespace(tokens, 
-										 file_data,
-										 &i);
+								     file_data,
+								     &i);
 				break;
 		case TOKEN_BRACKET_OPEN:
 		case TOKEN_BRACKET_CLOSE:
@@ -647,8 +659,7 @@ tokenize_file_data(char *file_data)
 		case TOKEN_PARENTHETICAL_CLOSE:
 			tokens[counter].token_type = tokens[i].token_type;
 
-			token_string = 
-				(char *)alloc(2);
+			token_string = alloc(2);
 
 			token_string[0] = file_data[i];
 			token_string[1] = '\0';			
@@ -709,11 +720,11 @@ tokenize_file_data(char *file_data)
 		}
 	}
 	
-	result.token_num = tokens_actual_length;
-	result.tokens = tokens;
-	result.at = result.tokens;
+	tokenizer.token_num = tokens_actual_length;
+	tokenizer.tokens = tokens;
+	tokenizer.at = tokenizer.tokens;
 	
-	return result;
+	return tokenizer;
 }
 
 /*
@@ -722,6 +733,10 @@ tokenize_file_data(char *file_data)
 static char *
 get_filename_no_ext(char *file_path)
 {
+	if(file_path == 0) {
+		return 0;
+	}
+
 	u32 file_path_length = strlen(file_path);
 	u32 filename_start = 0;
 	u32 filename_end = 0;
@@ -731,17 +746,18 @@ get_filename_no_ext(char *file_path)
 		    file_path[i] == '/') {
 			filename_start = i + 1;
 		}
-		else if (file_path[i] == '.') {
+		else if ((file_path[i] == '.') &&
+			 (file_path[i + 1] != '/')) {
 			filename_end = i;
 			break;
 		}
 	}
 	
 	u32 filename_length = get_range(filename_start, filename_end);
-	char *filename = (char *)alloc(filename_length + 1);
+	char *filename = alloc(filename_length + 1);
 	
 	copy_string_range(file_path, filename,
-					  filename_start, filename_end);
+			  filename_start, filename_end);
 	
 	return filename;
 }
@@ -752,6 +768,10 @@ get_filename_no_ext(char *file_path)
 static char *
 get_file_ext(char *file_path)
 {
+	if(file_path == 0) {
+		return 0;
+	}
+
 	u32 file_path_length = strlen(file_path);
 	
 	u32 file_ext_start = 0;
@@ -765,7 +785,7 @@ get_file_ext(char *file_path)
 	}
 	
 	u32 file_ext_length = get_range(file_ext_start, file_ext_end);
-	char *file_ext = (char *)alloc(file_ext_length + 1);
+	char *file_ext = alloc(file_ext_length + 1);
 	
 	copy_string_range(file_path, file_ext,
 			  file_ext_start, file_ext_end);
@@ -779,6 +799,10 @@ get_file_ext(char *file_path)
 static char *
 get_file_working_dir(char *file_path)
 {
+	if(file_path == 0) {
+		return 0;
+	}
+
 	u32 file_path_length = strlen(file_path);
 	
 	u32 working_dir_start = 0;
@@ -791,7 +815,7 @@ get_file_working_dir(char *file_path)
 	}
 	
 	u32 working_dir_length = get_range(working_dir_start, working_dir_end);
-	char *working_dir = (char *)alloc(working_dir_length + 1);
+	char *working_dir = alloc(working_dir_length + 1);
 	
 	copy_string_range(file_path, working_dir,
 			  working_dir_start, working_dir_end);
@@ -819,8 +843,6 @@ s32 main(s32 arg_count, char **args)
 	for (u32 i = 1; i < (u32)arg_count; ++i) {
 		strcpy(file_path, args[i]);
 
-		printf("%s -> ", file_path);
-
 		char *filename_no_ext = get_filename_no_ext(file_path);
 		char *file_working_dir = get_file_working_dir(file_path);
 		char *output_file_path = (char *)alloc(128);
@@ -839,7 +861,7 @@ s32 main(s32 arg_count, char **args)
 		u32 file_length = ftell(file);
 		fseek(file, 0, SEEK_SET);
 		
-		char *file_contents = (char *)alloc(file_length);
+		char *file_contents = alloc(file_length);
 		
 		fread(file_contents, 1, file_length, file);
 		
@@ -850,11 +872,15 @@ s32 main(s32 arg_count, char **args)
 
 		FILE *output_file = fopen(output_file_path, "w");
 
+		do {
+			print_tokenizer_at(&tokenizer, output_file);
+		} while(increment_tokenizer_no_whitespace(&tokenizer));
+
 		fclose(output_file);
 
 		clear_arena();
-		
-		printf("%s\n", output_file_path);
+
+		printf("%s -> %s\n", file_path, output_file_path);
 	}
 	
 	free(memory);

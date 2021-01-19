@@ -13,10 +13,14 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef float f32;
+typedef float  f32;
 typedef double f64;
 
-typedef u8 bool;
+typedef u8  b8;
+typedef u16 b16;
+typedef u32 b32;
+typedef u64 b64;
+
 #define FALSE 0
 #define TRUE 1
 
