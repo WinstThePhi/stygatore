@@ -1,18 +1,23 @@
 @template_start Vec4 <- T
-struct Vec4
+typedef struct @template_name
 {
 	T x;
 	T y;
 	T z;
 	T w;
-	
-	Vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) 
-	{}
-
-	void normalize();
-	f32 get_length();
-};
+} @template_name;
 @template_end
 
-@template Vec4 -> f32
-@template Vec4 -> u8
+@template_start Vec3 <- T
+typedef struct @template_name
+{
+	T x;
+	T y;
+	T z;
+} @template_name;
+@template_end
+
+@template Vec3 -> f32 -> Vec3f
+@template Vec3 -> u8 -> Vec3c
+@template Vec4 -> f32 -> Vec4f
+@template Vec4 -> u8 -> Vec4c
