@@ -943,11 +943,9 @@ s32 main(s32 arg_count, char **args)
 	
 	init_arena(memory, 512000);
 	
-	char *file_path = (char *)alloc(32);
-	
 	for (u32 i = 1; i < (u32)arg_count; ++i) {
-		strcpy(file_path, args[i]);
                 
+                char *file_path = args[i];
 		char *filename_no_ext = get_filename_no_ext(file_path);
 		char *file_working_dir = get_file_working_dir(file_path);
 		char *output_file_path = (char *)alloc(128);

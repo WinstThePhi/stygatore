@@ -28,3 +28,15 @@ typedef struct Vec4c
 	u8 w;
 } Vec4c;
 
+typedef struct Vec2f
+{
+	f32 x;
+	f32 y;
+} Vec2f;
+
+typedef struct Vec2_Coords
+{
+	u16 x;
+	u16 y;
+} Vec2_Coords;
+
