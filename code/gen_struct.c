@@ -55,7 +55,7 @@ struct Tokenizer
 
 struct Template
 {
-	char *template_name;;
+	char *template_name;
 	char *template_type_name;
 	
 	struct Tokenizer tokenizer;
