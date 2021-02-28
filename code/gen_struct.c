@@ -781,55 +781,67 @@ tokenize_file_data(char *file_data)
 		if (tokens[i].token_type == TOKEN_END_OF_FILE) {
 			tokens_actual_length = i + 1;
 			break;
-		} else if (strcmp(tokens[i].token_data, "@template_start") == 0) {
-			tokens[i].token_type = TOKEN_TEMPLATE_START;
-		} else if (strcmp(tokens[i].token_data, "@template_end") == 0) {
-			tokens[i].token_type = TOKEN_TEMPLATE_END;
-		} else if (strcmp(tokens[i].token_data, "@template_name") == 0) {
-                        tokens[i].token_type = TOKEN_TEMPLATE_NAME_STATEMENT;
-                } else if (strcmp(tokens[i].token_data, "<-") == 0) {
-			tokens[i].token_type = TOKEN_FEED_SYMBOL;
-		} else if (strcmp(tokens[i].token_data, "->") == 0) {
-			tokens[i].token_type = TOKEN_TEMPLATE_TYPE_INDICATOR;
 		}
-	}
-	
-	char *template_typename = 0;
-	for (u32 i = 0; i < tokens_actual_length - 1; ++i) {
-		if (tokens[i].token_type == TOKEN_TEMPLATE_START ||
+                if (tokens[i].token_data[0] == '@') {
+                        if (strcmp(tokens[i].token_data, "@template_start") == 0) {
+                                tokens[i].token_type = TOKEN_TEMPLATE_START;
+                        } else if (strcmp(tokens[i].token_data, "@template_end") == 0) {
+                                tokens[i].token_type = TOKEN_TEMPLATE_END;
+                        } else if (strcmp(tokens[i].token_data, "@template_name") == 0) {
+                                tokens[i].token_type = TOKEN_TEMPLATE_NAME_STATEMENT;
+                        } else if (strcmp(tokens[i].token_data, "@template") == 0) {
+                                goto CONTINUE;
+                        } else {
+                                fprintf(stderr, "Unrecognized keyword: %s\n", tokens[i].token_data);
+                                return tokenizer;
+                        }
+                        
+                        CONTINUE:;
+                        continue;
+                }
+                if (strcmp(tokens[i].token_data, "<-") == 0) {
+                        tokens[i].token_type = TOKEN_FEED_SYMBOL;
+                } else if (strcmp(tokens[i].token_data, "->") == 0) {
+                        tokens[i].token_type = TOKEN_TEMPLATE_TYPE_INDICATOR;
+                }
+        }
+        
+        char *template_typename = 0;
+        for (u32 i = 0; i < tokens_actual_length - 1; ++i) {
+                if (tokens[i].token_type == TOKEN_TEMPLATE_START ||
                     tokens[i].token_type == TOKEN_TEMPLATE) {
-			while (tokens[++i].token_type == TOKEN_WHITESPACE);
-			tokens[i].token_type = TOKEN_TEMPLATE_NAME;
-		}
-		if (tokens[i].token_type == TOKEN_TEMPLATE_TYPE_INDICATOR) {
-			while (tokens[++i].token_type == TOKEN_WHITESPACE);
-			tokens[i].token_type = TOKEN_TEMPLATE_TYPE;
+                        while (tokens[++i].token_type == TOKEN_WHITESPACE);
+                        tokens[i].token_type = TOKEN_TEMPLATE_NAME;
+                }
+                if (tokens[i].token_type == TOKEN_TEMPLATE_TYPE_INDICATOR) {
+                        while (tokens[++i].token_type == TOKEN_WHITESPACE);
+                        tokens[i].token_type = TOKEN_TEMPLATE_TYPE;
                         
                         while (tokens[++i].token_type == TOKEN_WHITESPACE);
                         if(tokens[i].token_type == TOKEN_TEMPLATE_TYPE_INDICATOR) {
                                 while (tokens[++i].token_type == TOKEN_WHITESPACE);
                                 tokens[i].token_type = TOKEN_GEN_STRUCT_NAME;
                         }
-		}
-		if (tokens[i].token_type == TOKEN_FEED_SYMBOL) {
-			while (tokens[++i].token_type == TOKEN_WHITESPACE);
-			
-			tokens[i].token_type = TOKEN_TEMPLATE_TYPE_NAME;
-			template_typename = tokens[i].token_data;
-			continue;
-		}
-		if (template_typename) {
-			if (strcmp(tokens[i].token_data, template_typename) == 0) {
-				tokens[i].token_type = TOKEN_TEMPLATE_TYPE_NAME;
-			}
-		}
-	}
-	
-	tokenizer.token_num = tokens_actual_length;
-	tokenizer.tokens = tokens;
-	tokenizer.at = tokenizer.tokens;
-	
-	return tokenizer;
+                }
+                if (tokens[i].token_type == TOKEN_FEED_SYMBOL) {
+                        while (tokens[++i].token_type == TOKEN_WHITESPACE);
+                        
+                        tokens[i].token_type = TOKEN_TEMPLATE_TYPE_NAME;
+                        template_typename = tokens[i].token_data;
+                        continue;
+                }
+                if (template_typename) {
+                        if (strcmp(tokens[i].token_data, template_typename) == 0) {
+                                tokens[i].token_type = TOKEN_TEMPLATE_TYPE_NAME;
+                        }
+                }
+        }
+        
+        tokenizer.token_num = tokens_actual_length;
+        tokenizer.tokens = tokens;
+        tokenizer.at = tokenizer.tokens;
+        
+        return tokenizer;
 }
 
 /*
@@ -972,6 +984,11 @@ s32 main(s32 arg_count, char **args)
 		
 		struct Tokenizer tokenizer =
 			tokenize_file_data(file_contents);
+                
+                if (tokenizer.tokens == 0) {
+                        fprintf(stderr, "Failed to compile file.\n");
+                        continue;
+                }
                 
                 struct Template_Hash_Table hash_table = 
                         get_template_hash_table(&tokenizer);
