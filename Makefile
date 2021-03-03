@@ -1,10 +1,6 @@
 C = gcc
 
-ifeq ($(shell uname -s), Linux)
 TIME_UTIL = code/linux/time_util.c
-else
-TIME_UTIL = code/win32/time_util.c
-endif
 
 all: link
 
