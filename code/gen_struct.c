@@ -27,6 +27,7 @@ enum Token_Type
 	TOKEN_TEMPLATE_NAME,
 	TOKEN_TEMPLATE_NAME_STATEMENT,
 	TOKEN_TEMPLATE_TYPE_INDICATOR,
+        TOKEN_COMMENT,
         TOKEN_GEN_STRUCT_NAME,
 	TOKEN_TEMPLATE_TYPE,
 	TOKEN_IDENTIFIER,
@@ -782,6 +783,30 @@ tokenize_file_data(char *file_data)
 			tokens_actual_length = i + 1;
 			break;
 		}
+                if (tokens[i].token_data[0] == '/' && 
+                    tokens[i].token_data[1] == '/') {
+                        for (;; ++i) {
+                                enum Token_Type type_before = tokens[i].token_type;
+                                tokens[i].token_type = TOKEN_COMMENT;
+                                
+                                if (type_before == TOKEN_WHITESPACE) {
+                                        b32 is_end_of_line = FALSE;
+                                        for (u32 j = 0; ; ++j) {
+                                                if (tokens[i].token_data[j] == '\0') {
+                                                        break;
+                                                }
+                                                if (tokens[i].token_data[j] == '\n') {
+                                                        is_end_of_line = TRUE;
+                                                        break;
+                                                }
+                                        }
+                                        
+                                        if (is_end_of_line == TRUE) {
+                                                break;
+                                        }
+                                }
+                        }
+                }
                 if (tokens[i].token_data[0] == '@') {
                         if (strcmp(tokens[i].token_data, "@template_start") == 0) {
                                 tokens[i].token_type = TOKEN_TEMPLATE_START;
@@ -792,7 +817,8 @@ tokenize_file_data(char *file_data)
                         } else if (strcmp(tokens[i].token_data, "@template") == 0) {
                                 goto CONTINUE;
                         } else {
-                                fprintf(stderr, "Unrecognized keyword: %s\n", tokens[i].token_data);
+                                fprintf(stderr, "Unrecognized keyword: %s\n", 
+                                        tokens[i].token_data);
                                 return tokenizer;
                         }
                         
