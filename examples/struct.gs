@@ -32,6 +32,6 @@ typedef struct @template_name
 
 @template Vec4 -> f32 -> Vec4f
 @template Vec4 -> u8 -> Vec4c
- 	
+
 @template Vec2 -> f32 -> Vec2f
 @template Vec2 -> u16 -> Vec2_Coords

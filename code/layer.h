@@ -22,6 +22,10 @@ typedef u32 b32;
 typedef u64 b64;
 
 #define FALSE 0
-#define TRUE 1
+#define TRUE  1
+
+#define internal      static
+#define global        static
+#define local_persist static
 
 #endif
