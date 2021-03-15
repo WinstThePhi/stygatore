@@ -1,42 +1,48 @@
-typedef struct Vec3f
+typedef struct Vec3f Vec3f;
+struct Vec3f
 {
 	f32 x;
 	f32 y;
 	f32 z;
-} Vec3f;
+};
 
-typedef struct Vec3c
+typedef struct Vec3c Vec3c;
+struct Vec3c
 {
 	u8 x;
 	u8 y;
 	u8 z;
-} Vec3c;
+};
 
-typedef struct Vec4f
+typedef struct Vec4f Vec4f;
+struct Vec4f
 {
 	f32 x;
 	f32 y;
 	f32 z;
 	f32 w;
-} Vec4f;
+};
 
-typedef struct Vec4c
+typedef struct Vec4c Vec4c;
+struct Vec4c
 {
 	u8 x;
 	u8 y;
 	u8 z;
 	u8 w;
-} Vec4c;
+};
 
-typedef struct Vec2f
+typedef struct Vec2f Vec2f;
+struct Vec2f
 {
 	f32 x;
 	f32 y;
-} Vec2f;
+};
 
-typedef struct Vec2_Coords
+typedef struct Vec2_Coords Vec2_Coords;
+struct Vec2_Coords
 {
 	u16 x;
 	u16 y;
-} Vec2_Coords;
+};
 

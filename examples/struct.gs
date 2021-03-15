@@ -1,30 +1,33 @@
 //@template_name is the template name thing.
 
 @template_start Vec4 <- T
-typedef struct @template_name
+typedef struct @template_name @template_name;
+struct @template_name
 {
 	T x;
 	T y;
 	T z;
 	T w;
-} @template_name;
+};
 @template_end
 
 @template_start Vec3 <- T
-typedef struct @template_name
+typedef struct @template_name @template_name;
+struct @template_name
 {
 	T x;
 	T y;
 	T z;
-} @template_name;
+};
 @template_end
 
 @template_start Vec2 <- T
-typedef struct @template_name
+typedef struct @template_name @template_name;
+struct @template_name
 {
 	T x;
 	T y;
-} @template_name;
+};
 @template_end
 
 @template Vec3 -> f32 -> Vec3f

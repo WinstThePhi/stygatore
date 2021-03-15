@@ -28,4 +28,12 @@ typedef u64 b64;
 #define global        static
 #define local_persist static
 
+#define kilobytes(count) (1024 * count)
+#define megabytes(count) (1024 * kilobytes(count))
+#define gigabytes(count) (1024 * megabytes(count))
+
+#define VOID_CHECK assert
+
+#define cast(variable_identifier, type) ((type)variable_identifier)
+
 #endif

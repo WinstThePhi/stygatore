@@ -12,7 +12,7 @@
 #include "layer.h"
 
 #ifdef _WIN32
-#include "win32/time_util.c"
+#include "win32/win32_platform.c"
 #elif __linux__
 #include "linux/time_util.c"
 #endif
@@ -103,7 +103,6 @@ struct Template_Type_Request
 	u32 request_num;
 };
 
-
 /* utility macro for getting the range between two indices */
 #define get_range(start, end) (end - start)
 
@@ -128,11 +127,23 @@ get_hash(char *str)
 
 /* initializes global arena for program use */
 internal void
-init_arena(void *memory, u32 size)
+init_arena(u32 size)
 {
+        void *memory = request_mem(gigabytes(2));
+        VOID_CHECK(memory);
+        
 	arena.memory = memory;
 	arena.size = size;
 	arena.size_left = size;
+}
+
+internal void 
+free_arena() 
+{
+        free_mem(arena.memory);
+        arena.memory = 0;
+	arena.size = 0;
+	arena.size_left = 0;
 }
 
 /* 
@@ -148,7 +159,7 @@ arena_alloc(u32 size)
 	
 	assert(arena.size_left >= size);
 	
-	result = &(((char *)arena.memory)[arena.offset]);
+	result = &((cast(arena.memory, char *))[arena.offset]);
 	
 	arena.offset += size;
 	arena.size_left -= size;
@@ -704,8 +715,7 @@ tokenize_file_data(char *file_data)
 		alloc_array(sizeof(*tokens), file_data_length);
 	
 	for (u32 i = 0; i < file_data_length; ++i) {
-		Token token;
-		token.token_type = TOKEN_UNKNOWN;
+		Token token = {0};
                 
 		switch (file_data[i]) {
                         case '\n':
@@ -842,14 +852,12 @@ tokenize_file_data(char *file_data)
                         } else if (strcmp(tokens[i].token_data, "@template_name") == 0) {
                                 tokens[i].token_type = TOKEN_TEMPLATE_NAME_STATEMENT;
                         } else if (strcmp(tokens[i].token_data, "@template") == 0) {
-                                goto CONTINUE;
                         } else {
                                 fprintf(stderr, "Unrecognized keyword: %s\n", 
                                         tokens[i].token_data);
                                 return tokenizer;
                         }
                         
-                        CONTINUE:;
                         continue;
                 }
                 if (strcmp(tokens[i].token_data, "<-") == 0) {
@@ -898,8 +906,8 @@ tokenize_file_data(char *file_data)
 }
 
 /*
- Gets the file name from the path without the extension
- */
+   Gets the file name from the path without the extension
+  */
 internal char *
 get_filename_no_ext(char *file_path)
 {
@@ -993,23 +1001,32 @@ get_file_working_dir(char *file_path)
 	return working_dir;
 }
 
-s32 main(s32 arg_count, char **args)
+internal char *
+read_file(char *file_path) 
 {
-	if (arg_count < 2) {
-		fprintf(stderr, "Specify file name as first argument");
-		return -1;
-	}
-	
-	f64 time_start = get_time();
+        FILE *file = fopen(file_path, "r");
         
-	void *memory = malloc(512000);
-	if (!memory)
-		return -1;
-	
-	init_arena(memory, 512000);
-	
-	for (u32 i = 1; i < (u32)arg_count; ++i) {
-                
+        if (!file) {
+                return 0;
+        }
+        
+        fseek(file, 0, SEEK_END);
+        u32 file_length = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        
+        char *file_contents = arena_alloc(file_length);
+        
+        fread(file_contents, 1, file_length, file);
+        
+        fclose(file);
+        
+        return file_contents;
+}
+
+internal void
+gen_code(u32 arg_count, char **args)
+{
+	for (u32 i = 1; i < arg_count; ++i) {
                 char *file_path = args[i];
 		char *filename_no_ext = get_filename_no_ext(file_path);
 		char *file_working_dir = get_file_working_dir(file_path);
@@ -1019,27 +1036,19 @@ s32 main(s32 arg_count, char **args)
 		strcat(output_file_path, filename_no_ext);
 		strcat(output_file_path, GENERATED_EXTENSION);
 		
-		FILE *file = fopen(file_path, "r");
-		
-		if (!file) {
-			continue;
-		}
-		
-		fseek(file, 0, SEEK_END);
-		u32 file_length = ftell(file);
-		fseek(file, 0, SEEK_SET);
-		
-		char *file_contents = arena_alloc(file_length);
-		
-		fread(file_contents, 1, file_length, file);
-		
-		fclose(file);
-		
-		Tokenizer tokenizer =
-			tokenize_file_data(file_contents);
+                char *file_contents = read_file(file_path);
+                
+                if (file_contents == 0) {
+                        fprintf(stderr, "Failed to read file %s.\n", file_path);
+                        clear_arena();
+                        continue;
+                }
+                
+		Tokenizer tokenizer = tokenize_file_data(file_contents);
                 
                 if (tokenizer.tokens == 0) {
                         fprintf(stderr, "Failed to compile file.\n");
+                        clear_arena();
                         continue;
                 }
                 
@@ -1052,17 +1061,16 @@ s32 main(s32 arg_count, char **args)
                 FILE *output_file = fopen(output_file_path, "w");
                 
                 for (u32 i = 0; i < type_request.request_num; ++i) {
-                        
-                        Template template = 
+                        Template template_at = 
                                 lookup_hash_table(type_request.type_requests[i].template_name,
                                                   &hash_table);
                         
-                        replace_type_name(&template ,
+                        replace_type_name(&template_at,
                                           type_request.type_requests[i].type_name, 
                                           type_request.type_requests[i].struct_name);
                         
-                        if (template.template_name != 0) {
-                                write_template_to_file(&template, output_file);
+                        if (template_at.template_name != 0) {
+                                write_template_to_file(&template_at, output_file);
                         }
                         
                         fprintf(output_file, "\n");
@@ -1074,12 +1082,25 @@ s32 main(s32 arg_count, char **args)
                 
 		printf("%s -> %s\n", file_path, output_file_path);
 	}
+}
+
+s32 
+main(s32 arg_count, char **args)
+{
+	if (arg_count < 2) {
+		fprintf(stderr, "Specify file name as first argument");
+		return -1;
+	}
 	
-	free(memory);
-	
+	f64 time_start = get_time();
+        
+        init_arena(gigabytes(2));
+        gen_code(cast(arg_count, u32), args);
+        free_arena();
+        
 	f64 time_end = get_time();
 	
-	printf("\nCode generation succeeded in %f seconds.\n",
+	printf("Code generation succeeded in %f seconds.\n",
                time_end - time_start);
         
 	return 0;
