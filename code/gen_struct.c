@@ -14,7 +14,7 @@
 #ifdef _WIN32
 #include "win32/win32_platform.c"
 #elif __linux__
-#include "linux/time_util.c"
+#include "linux/linux_platform.c"
 #endif
 
 typedef enum Token_Type Token_Type;
@@ -129,7 +129,7 @@ get_hash(char *str)
 internal void
 init_arena(u32 size)
 {
-        void *memory = request_mem(gigabytes(2));
+        void *memory = request_mem(size);
         VOID_CHECK(memory);
         
 	arena.memory = memory;
@@ -140,7 +140,8 @@ init_arena(u32 size)
 internal void 
 free_arena() 
 {
-        free_mem(arena.memory);
+        free_mem(arena.memory, arena.size);
+
         arena.memory = 0;
 	arena.size = 0;
 	arena.size_left = 0;
@@ -169,7 +170,7 @@ arena_alloc(u32 size)
 }
 
 /* resets arena offset but does not zero memory */
-inline void
+internal void
 clear_arena()
 {
         arena.size_left = arena.size; 
@@ -270,7 +271,7 @@ print_tokenizer_at(Tokenizer *tokenizer, FILE *file)
 }
 
 /* resets the at pointer of the tokenizer to the starting point */
-internal inline void
+internal void
 reset_tokenizer(Tokenizer *tokenizer)
 {
 	tokenizer->at = tokenizer->tokens;
@@ -317,7 +318,7 @@ increment_tokenizer_all(Tokenizer *tokenizer)
  Utility function for getting the at pointer of the tokenizer
  Mainly for looks, not really needed though
  */
-internal inline Token *
+internal Token *
 get_tokenizer_at(Tokenizer *tokenizer)
 {
 	return tokenizer->at;
@@ -1094,7 +1095,7 @@ main(s32 arg_count, char **args)
 	
 	f64 time_start = get_time();
         
-        init_arena(gigabytes(2));
+        init_arena(gigabytes((u32)2));
         gen_code(cast(arg_count, u32), args);
         free_arena();
         

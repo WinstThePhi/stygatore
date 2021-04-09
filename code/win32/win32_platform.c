@@ -37,7 +37,7 @@ void *request_mem(u32 size)
 }
 
 internal void 
-free_mem(void *mem)
+free_mem(void *mem, u32 size)
 {
         VirtualFree(mem,
                     0,
