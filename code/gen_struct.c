@@ -17,45 +17,44 @@
 #endif
 
 /* utility macro for getting the range between two indices */
-#define GetRange(start, end) (end - start)
+#define get_range(start, end) (end - start)
 
 /* utility macro for allocating array */
-#define AllocArray(size, array_num) \
-ArenaAlloc(size * array_num)
+#define alloc_array(size, array_num) \
+arena_alloc(size * array_num)
 
-global MemoryArena arena = {0};
-global char file_ext[16];
+static MemoryArena arena = {0};
+static char file_ext[16];
 
 /* djb2 hash function for string hashing */
-internal u64
-GetHash(char *str)
+static u64
+get_hash(char *str)
 {
 	u64 hash = 5381;
-	s32 c = 0;
+	i32 c = 0;
     
-	while ((c = *str++))
-    {
+	while ((c = *str++)) {
 		hash = ((hash << 5) + hash) + c;
 	}
 	return hash;
 }
 
-/* initializes global arena for program use */
-internal void
-InitArena(u32 size)
+/* initializes static arena for program use */
+static void
+init_arena(u32 size)
 {
-    void *memory = RequestMem(size);
-    VOID_CHECK(memory);
+    void *memory = request_mem(size);
+    void_check(memory);
     
 	arena.memory = memory;
 	arena.size = size;
 	arena.size_left = size;
 }
 
-internal void
-FreeArena()
+static void
+free_arena()
 {
-    FreeMem(arena.memory, arena.size);
+    free_mem(arena.memory, arena.size);
     
     arena.memory = 0;
 	arena.size = 0;
@@ -66,8 +65,8 @@ FreeArena()
 allocates specified amount of memory and
 returns a pointer to the start of the memory
 */
-internal void *
-ArenaAlloc(u32 size)
+static void *
+arena_alloc(u32 size)
 {
 	++size;
     
@@ -85,22 +84,21 @@ ArenaAlloc(u32 size)
 }
 
 /* resets arena offset but does not zero memory */
-internal void
-ClearArena()
+static void
+clear_arena()
 {
     arena.size_left = arena.size;
     arena.offset = 0;
 }
 
 /* copies a specific range of input_string */
-internal void
-CopyStringRange(char *input_string, char *output_string,
-                u32 start, u32 end)
+static void
+copy_string_range(char *input_string, char *output_string,
+                  u32 start, u32 end)
 {
-	u32 string_length = GetRange(start, end);
+    u32 string_length = get_range(start, end);
     
-	for (u32 i = 0; i < string_length; ++i)
-    {
+	for (u32 i = 0; i < string_length; ++i) {
 		output_string[i] = input_string[i + start];
 	}
     
@@ -112,36 +110,36 @@ CopyStringRange(char *input_string, char *output_string,
  prints token type to specified FILE pointer.
  utility function for print_token_string
  */
-internal void
-PrintTokenType(Token token, FILE *file)
+static void
+print_token_type(Token token, FILE *file)
 {
 	switch (token.token_type)
     {
-#define TOKEN_PRINT_CASE(token_const)                             \
-case token_const:                                             \
-{                                                             \
-fprintf(file, "%s: ", #token_const);                      \
-} break
+#define token_print_case(token_const)                             \
+    case token_const:                                             \
+    {                                                             \
+        fprintf(file, "%s: ", #token_const);                      \
+    } break
         
-        TOKEN_PRINT_CASE(Token_Template);
-        TOKEN_PRINT_CASE(Token_TemplateStart);
-        TOKEN_PRINT_CASE(Token_TemplateEnd);
-        TOKEN_PRINT_CASE(Token_TemplateTypeName);
-        TOKEN_PRINT_CASE(Token_TemplateType);
-        TOKEN_PRINT_CASE(Token_TemplateName);
-        TOKEN_PRINT_CASE(Token_TemplateNameStatement);
-        TOKEN_PRINT_CASE(Token_TemplateTypeIndicator);
-        TOKEN_PRINT_CASE(Token_GenStructName);
-        TOKEN_PRINT_CASE(Token_Identifier);
-        TOKEN_PRINT_CASE(Token_Whitespace);
-        TOKEN_PRINT_CASE(Token_BracketOpen);
-        TOKEN_PRINT_CASE(Token_BracketClose);
-        TOKEN_PRINT_CASE(Token_ParentheticalOpen);
-        TOKEN_PRINT_CASE(Token_ParentheticalClose);
-        TOKEN_PRINT_CASE(Token_Semicolon);
-        TOKEN_PRINT_CASE(Token_EndOfFile);
-        TOKEN_PRINT_CASE(Token_FeedSymbol);
-#undef TOKEN_PRINT_CASE
+        token_print_case(Token_Template);
+        token_print_case(Token_TemplateStart);
+        token_print_case(Token_TemplateEnd);
+        token_print_case(Token_TemplateTypeName);
+        token_print_case(Token_TemplateType);
+        token_print_case(Token_TemplateName);
+        token_print_case(Token_TemplateNameStatement);
+        token_print_case(Token_TemplateTypeIndicator);
+        token_print_case(Token_GenStructName);
+        token_print_case(Token_Identifier);
+        token_print_case(Token_Whitespace);
+        token_print_case(Token_BracketOpen);
+        token_print_case(Token_BracketClose);
+        token_print_case(Token_ParentheticalOpen);
+        token_print_case(Token_ParentheticalClose);
+        token_print_case(Token_Semicolon);
+        token_print_case(Token_EndOfFile);
+        token_print_case(Token_FeedSymbol);
+#undef token_print_case
         default:
         {
             fprintf(file, "Unknown token: ");
@@ -153,8 +151,8 @@ fprintf(file, "%s: ", #token_const);                      \
 Prints the string that token is holding to specified stream.
 Returns FALSE if end of file and TRUE if anything else.
 */
-internal b8
-PrintTokenString(Token token, FILE *file)
+static b8
+print_token_string(Token token, FILE *file)
 {
     if (token.token_type == Token_EndOfFile)
     {
@@ -192,17 +190,17 @@ PrintTokenString(Token token, FILE *file)
 }
 
 /* prints the at pointer of the tokenizer */
-internal void
-PrintTokenizerAt(Tokenizer *tokenizer, FILE *file)
+static void
+print_tokenizer_at(Tokenizer *tokenizer, FILE *file)
 {
-    PrintTokenType(*(tokenizer->at), file);
-    PrintTokenString(*(tokenizer->at), file);
+    print_token_type(*(tokenizer->at), file);
+    print_token_string(*(tokenizer->at), file);
     fprintf(file, "\n");
 }
 
 /* resets the at pointer of the tokenizer to the starting point */
-internal void
-ResetTokenizer(Tokenizer *tokenizer)
+static void
+reset_tokenizer(Tokenizer *tokenizer)
 {
     tokenizer->at = tokenizer->tokens;
 }
@@ -212,8 +210,8 @@ Increments the tokenizer at pointer, skips all whitespace and semicolons
 Returns FALSE if hits end of file or gets out of array bounds
 Returns TRUE if successfully incremented
 */
-internal b8
-IncrementTokenizerNoWhitespace(Tokenizer *tokenizer)
+static b8
+increment_tokenizer_no_whitespace(Tokenizer *tokenizer)
 {
     do
     {
@@ -234,8 +232,8 @@ IncrementTokenizerNoWhitespace(Tokenizer *tokenizer)
  Returns FALSE if hits end of file or out of array bounds
  Returns TRUE if successfully incremented
  */
-internal b8
-IncrementTokenizerAll(Tokenizer *tokenizer)
+static b8
+increment_tokenizer_all(Tokenizer *tokenizer)
 {
     if (tokenizer->at->token_type == Token_EndOfFile ||
         (tokenizer->at - tokenizer->tokens) >= tokenizer->token_num)
@@ -251,8 +249,8 @@ IncrementTokenizerAll(Tokenizer *tokenizer)
  Utility function for getting the at pointer of the tokenizer
  Mainly for looks, not really needed though
  */
-internal Token *
-GetTokenizerAt(Tokenizer *tokenizer)
+static Token *
+get_tokenizer_at(Tokenizer *tokenizer)
 {
     return tokenizer->at;
 }
@@ -261,28 +259,28 @@ GetTokenizerAt(Tokenizer *tokenizer)
 /*
  Writes contents of a template to specified file
  */
-internal void
-WriteTemplateToFile(Template *templates, FILE *file)
+static void
+write_template_to_file(Template *templates, FILE *file)
 {
-    ResetTokenizer(&templates->tokenizer);
+    reset_tokenizer(&templates->tokenizer);
     
     do
     {
-        if (GetTokenizerAt(&templates->tokenizer)->token_type == Token_TemplateStart)
+        if (get_tokenizer_at(&templates->tokenizer)->token_type == Token_TemplateStart)
         {
-            IncrementTokenizerNoWhitespace(&templates->tokenizer);
-            IncrementTokenizerNoWhitespace(&templates->tokenizer);
-            IncrementTokenizerNoWhitespace(&templates->tokenizer);
-            IncrementTokenizerNoWhitespace(&templates->tokenizer);
+            increment_tokenizer_no_whitespace(&templates->tokenizer);
+            increment_tokenizer_no_whitespace(&templates->tokenizer);
+            increment_tokenizer_no_whitespace(&templates->tokenizer);
+            increment_tokenizer_no_whitespace(&templates->tokenizer);
         }
-        else if (GetTokenizerAt(&templates->tokenizer)->token_type == Token_TemplateEnd)
+        else if (get_tokenizer_at(&templates->tokenizer)->token_type == Token_TemplateEnd)
         {
             break;
         }
         
-        fprintf(file, "%s", GetTokenizerAt(&templates->tokenizer)->token_data);
-    } while (IncrementTokenizerAll(&templates->tokenizer));
-    ResetTokenizer(&templates->tokenizer);
+        fprintf(file, "%s", get_tokenizer_at(&templates->tokenizer)->token_data);
+    } while (increment_tokenizer_all(&templates->tokenizer));
+    reset_tokenizer(&templates->tokenizer);
 }
 
 /*
@@ -290,22 +288,22 @@ WriteTemplateToFile(Template *templates, FILE *file)
  Takes in a tokenized file
  Returns a u32 with the number of templates in file
  */
-internal u32
-GetNumberOfTemplates(Tokenizer *tokenizer)
+static u32
+get_number_of_templates(Tokenizer *tokenizer)
 {
     u32 count = 0;
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type == Token_TemplateEnd)
+        if (get_tokenizer_at(tokenizer)->token_type == Token_TemplateEnd)
         {
             ++count;
         }
-    } while (IncrementTokenizerNoWhitespace(tokenizer));
+    } while (increment_tokenizer_no_whitespace(tokenizer));
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     return count;
 }
 
@@ -314,23 +312,23 @@ GetNumberOfTemplates(Tokenizer *tokenizer)
  Takes in a tokenizer where the tokens pointer points to the first
  Token in the template
  */
-internal char *
-GetTemplateName(Tokenizer *tokenizer)
+static char *
+get_template_name(Tokenizer *tokenizer)
 {
-    char *template_name;
+    char *template_name = 0;
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type == Token_TemplateName)
+        if (get_tokenizer_at(tokenizer)->token_type == Token_TemplateName)
         {
-            template_name = GetTokenizerAt(tokenizer)->token_data;
+            template_name = get_tokenizer_at(tokenizer)->token_data;
             break;
         }
-    } while (IncrementTokenizerNoWhitespace(tokenizer));
+    } while (increment_tokenizer_no_whitespace(tokenizer));
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     return template_name;
 }
 
@@ -338,22 +336,22 @@ GetTemplateName(Tokenizer *tokenizer)
  Takes in a template tokenizer and
  Returns the name of template
  */
-internal char *
-GetTemplateTypeName(Tokenizer *tokenizer)
+static char *
+get_template_type_name(Tokenizer *tokenizer)
 {
     char *type_name = 0;
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type == Token_TemplateTypeName)
+        if (get_tokenizer_at(tokenizer)->token_type == Token_TemplateTypeName)
         {
-            type_name = GetTokenizerAt(tokenizer)->token_data;
+            type_name = get_tokenizer_at(tokenizer)->token_data;
             break;
         }
-    } while(IncrementTokenizerNoWhitespace(tokenizer));
+    } while(increment_tokenizer_no_whitespace(tokenizer));
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     
     return type_name;
 }
@@ -366,13 +364,13 @@ TODO (winston): complete this function and maybe implement a more
  versatile usage where the parameter does not have to point to the first
  token in the template.
  */
-internal Template
-GetTemplateFromTokens(Tokenizer *tokenizer)
+static Template
+get_template_from_tokens(Tokenizer *tokenizer)
 {
     Template template = {0};
     
-    template.template_name = GetTemplateName(tokenizer);
-    template.template_type_name = GetTemplateTypeName(tokenizer);
+    template.template_name = get_template_name(tokenizer);
+    template.template_type_name = get_template_type_name(tokenizer);
     
     Tokenizer template_tokenizer = {0};
     template_tokenizer.tokens = tokenizer->at;
@@ -380,38 +378,38 @@ GetTemplateFromTokens(Tokenizer *tokenizer)
     u32 range_start = 0;;
     u32 range_end = 0;
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type ==
+        if (get_tokenizer_at(tokenizer)->token_type ==
             Token_TemplateEnd)
         {
             range_end = tokenizer->at - tokenizer->tokens;
             break;
         }
-    } while (IncrementTokenizerNoWhitespace(tokenizer));
+    } while (increment_tokenizer_no_whitespace(tokenizer));
     
-    template_tokenizer.token_num = GetRange(range_start, range_end);
+    template_tokenizer.token_num = get_range(range_start, range_end);
     template.tokenizer = template_tokenizer;
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     return template;
 }
 
 /*
  Constructs a hash table from a file tokenizer
  */
-internal TemplateHashTable
-GetTemplateHashTable(Tokenizer *tokenizer)
+static TemplateHashTable
+get_template_hash_table(Tokenizer *tokenizer)
 {
     TemplateHashTable hash_table = {0};
-    hash_table.num = GetNumberOfTemplates(tokenizer);
+    hash_table.num = get_number_of_templates(tokenizer);
     hash_table.templates =
-        AllocArray(sizeof(*hash_table.templates), hash_table.num);
+        alloc_array(sizeof(*hash_table.templates), hash_table.num);
     
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type == Token_TemplateStart)
+        if (get_tokenizer_at(tokenizer)->token_type == Token_TemplateStart)
         {
             Tokenizer template_tokenizer = {0};
             template_tokenizer.token_num =
@@ -420,9 +418,9 @@ GetTemplateHashTable(Tokenizer *tokenizer)
             template_tokenizer.at = tokenizer->at;
             
             Template template =
-                GetTemplateFromTokens(&template_tokenizer);
+                get_template_from_tokens(&template_tokenizer);
             
-            u32 bucket = GetHash(template.template_name) % hash_table.num;
+            u32 bucket = get_hash(template.template_name) % hash_table.num;
             
             if (hash_table.templates[bucket].template_name == 0)
             {
@@ -440,12 +438,12 @@ GetTemplateHashTable(Tokenizer *tokenizer)
                 }
                 
                 template_at.next =
-                    ArenaAlloc(sizeof(*(template_at.next)));
+                    arena_alloc(sizeof(*(template_at.next)));
                 *(template_at.next) = template;
                 break;
             }
         }
-    } while (IncrementTokenizerNoWhitespace(tokenizer));
+    } while (increment_tokenizer_no_whitespace(tokenizer));
     return hash_table;
 }
 
@@ -454,11 +452,11 @@ Pretty intuitive.
 This looks up the definition of the template in the template hash table.
 */
 
-internal Template
-LookupHashTable(char *template_name, TemplateHashTable *hash_table)
+static Template
+lookup_hash_table(char *template_name, TemplateHashTable *hash_table)
 {
     Template template = {0};
-    u32 bucket = GetHash(template_name) % hash_table->num;
+    u32 bucket = get_hash(template_name) % hash_table->num;
     
     template = hash_table->templates[bucket];
     
@@ -480,20 +478,20 @@ LookupHashTable(char *template_name, TemplateHashTable *hash_table)
  TODO (winston): maybe integrate this into the lexing process
  To speed up things
  */
-internal u32
-GetNumberOfTemplateTypeRequests(Tokenizer *tokenizer)
+static u32
+get_number_of_template_type_requests(Tokenizer *tokenizer)
 {
     u32 increment_thing = 0;
     
-    ResetTokenizer(tokenizer);
+    reset_tokenizer(tokenizer);
     do
     {
-        if (GetTokenizerAt(tokenizer)->token_type == Token_Template)
+        if (get_tokenizer_at(tokenizer)->token_type == Token_Template)
         {
             ++increment_thing;
         }
-    } while (IncrementTokenizerNoWhitespace(tokenizer));
-    ResetTokenizer(tokenizer);
+    } while (increment_tokenizer_no_whitespace(tokenizer));
+    reset_tokenizer(tokenizer);
     
     return increment_thing;
 }
@@ -501,55 +499,55 @@ GetNumberOfTemplateTypeRequests(Tokenizer *tokenizer)
 /*
  Gets the type of template requested
  */
-internal TemplateTypeRequest
-GetTemplateTypeRequests(Tokenizer *file_tokens)
+static TemplateTypeRequest
+get_template_type_requests(Tokenizer *file_tokens)
 {
     TemplateTypeRequest type_request = {0};
     
     type_request.request_num =
-        GetNumberOfTemplateTypeRequests(file_tokens);
+        get_number_of_template_type_requests(file_tokens);
     type_request.type_requests =
-        AllocArray(sizeof(*type_request.type_requests),
-                   type_request.request_num);
+        alloc_array(sizeof(*type_request.type_requests),
+                    type_request.request_num);
     
-    ResetTokenizer(file_tokens);
+    reset_tokenizer(file_tokens);
     u32 index = 0;
     do
     {
-        if (GetTokenizerAt(file_tokens)->token_type == Token_Template)
+        if (get_tokenizer_at(file_tokens)->token_type == Token_Template)
         {
             TypeRequest type_request_at = {0};
             
             do
             {
-                IncrementTokenizerNoWhitespace(file_tokens);
+                increment_tokenizer_no_whitespace(file_tokens);
                 
-                switch (GetTokenizerAt(file_tokens)->token_type)
+                switch (get_tokenizer_at(file_tokens)->token_type)
                 {
                     case Token_TemplateName:
                     {
                         type_request_at.template_name =
-                            GetTokenizerAt(file_tokens)->token_data;
+                            get_tokenizer_at(file_tokens)->token_data;
                     } break;
                     case Token_TemplateType:
                     {
                         type_request_at.type_name =
-                            GetTokenizerAt(file_tokens)->token_data;
+                            get_tokenizer_at(file_tokens)->token_data;
                     } break;
                     case Token_GenStructName:
                     {
                         type_request_at.struct_name =
-                            GetTokenizerAt(file_tokens)->token_data;
+                            get_tokenizer_at(file_tokens)->token_data;
                     } break;
                 }
-            } while (GetTokenizerAt(file_tokens)->token_type !=
+            } while (get_tokenizer_at(file_tokens)->token_type !=
                      Token_GenStructName);
             type_request.type_requests[index] = type_request_at;
             
             ++index;
         }
-    } while (IncrementTokenizerNoWhitespace(file_tokens));
-    ResetTokenizer(file_tokens);
+    } while (increment_tokenizer_no_whitespace(file_tokens));
+    reset_tokenizer(file_tokens);
     
     return type_request;
 }
@@ -557,41 +555,41 @@ GetTemplateTypeRequests(Tokenizer *file_tokens)
 /*
  Replace the type name in a template
  */
-internal void
-ReplaceTypeName(Template *templates, char *type_name, char *struct_name)
+static void
+replace_type_name(Template *templates, char *type_name, char *struct_name)
 {
-    ResetTokenizer(&templates->tokenizer);
-    char *type_name_real = ArenaAlloc(strlen(type_name));
+    reset_tokenizer(&templates->tokenizer);
+    char *type_name_real = arena_alloc(strlen(type_name));
     strcpy(type_name_real, type_name);
     
-    char *struct_name_real = ArenaAlloc(strlen(struct_name));
+    char *struct_name_real = arena_alloc(strlen(struct_name));
     strcpy(struct_name_real, struct_name);
     
     do
     {
-        if (GetTokenizerAt(&templates->tokenizer)->token_type ==
+        if (get_tokenizer_at(&templates->tokenizer)->token_type ==
             Token_TemplateTypeName)
         {
-            GetTokenizerAt(&templates->tokenizer)->token_data =
+            get_tokenizer_at(&templates->tokenizer)->token_data =
                 type_name_real;
         }
-        else if (GetTokenizerAt(&templates->tokenizer)->token_type ==
+        else if (get_tokenizer_at(&templates->tokenizer)->token_type ==
                  Token_TemplateNameStatement)
         {
-            GetTokenizerAt(&templates->tokenizer)->token_data = struct_name_real;
+            get_tokenizer_at(&templates->tokenizer)->token_data = struct_name_real;
         }
-    } while (IncrementTokenizerNoWhitespace(&templates->tokenizer));
-    ResetTokenizer(&templates->tokenizer);
+    } while (increment_tokenizer_no_whitespace(&templates->tokenizer));
+    reset_tokenizer(&templates->tokenizer);
 }
 
 /*
  Gets the pointer of the string to the next whitespace
  or to the next semicolon or parenthesis
  */
-internal char *
-GetStringToNextWhitespace(Token *tokens,
-                          char *file_data,
-                          u32 *start_index)
+static char *
+get_string_to_next_whitespace(Token *tokens,
+                              char *file_data,
+                              u32 *start_index)
 {
     u32 range_start = *start_index;
     u32 range_end = *start_index;
@@ -609,14 +607,14 @@ GetStringToNextWhitespace(Token *tokens,
              tokens[range_end].token_type != Token_ParentheticalClose);
     
     char *token_string =
-        ArenaAlloc(GetRange(range_start, range_end));
+        arena_alloc(get_range(range_start, range_end));
     
-    for (u32 j = 0; j < GetRange(range_start, range_end); ++j)
+    for (u32 j = 0; j < get_range(range_start, range_end); ++j)
     {
         token_string[j] = file_data[range_start + j];
     }
     
-    token_string[GetRange(range_start, range_end)] = '\0';
+    token_string[get_range(range_start, range_end)] = '\0';
     
     *start_index = range_end - 1;
     
@@ -628,10 +626,10 @@ GetStringToNextWhitespace(Token *tokens,
  Allocates string and points it to the from the start
  and null-terminates at the next whitespace
  */
-internal char *
-GetStringToNextNonWhitespace(Token *tokens,
-                             char *file_data,
-                             u32 *start_index)
+static char *
+get_string_to_next_non_whitespace(Token *tokens,
+                                  char *file_data,
+                                  u32 *start_index)
 {
     u32 range_start = *start_index;
     u32 range_end = *start_index;
@@ -649,14 +647,14 @@ GetStringToNextNonWhitespace(Token *tokens,
              tokens[range_end].token_type != Token_ParentheticalClose);
     
     char *token_string =
-        ArenaAlloc(GetRange(range_start, range_end));
+        arena_alloc(get_range(range_start, range_end));
     
-    for (u32 j = 0; j < GetRange(range_start, range_end); ++j)
+    for (u32 j = 0; j < get_range(range_start, range_end); ++j)
     {
         token_string[j] = file_data[range_start + j];
     }
     
-    token_string[GetRange(range_start, range_end)] = '\0';
+    token_string[get_range(range_start, range_end)] = '\0';
     
     *start_index = range_end - 1;
     
@@ -669,8 +667,8 @@ GetStringToNextNonWhitespace(Token *tokens,
 TODO (winston): split this into multiple functions
  to shorten main function
  */
-internal Tokenizer
-TokenizeFileData(char *file_data)
+static Tokenizer
+tokenize_file_data(char *file_data)
 {
     if(file_data == 0)
     {
@@ -682,7 +680,7 @@ TokenizeFileData(char *file_data)
     Tokenizer tokenizer = {0};
     
     Token *tokens =
-        AllocArray(sizeof(*tokens), file_data_length);
+        alloc_array(sizeof(*tokens), file_data_length);
     
     for (u32 i = 0; i < file_data_length; ++i)
     {
@@ -691,6 +689,7 @@ TokenizeFileData(char *file_data)
         switch (file_data[i])
         {
             case '\n':
+            case '\r':
             case ' ':
             case '\t':
             {
@@ -751,9 +750,9 @@ TokenizeFileData(char *file_data)
             {
                 tokens[counter].token_type = tokens[i].token_type;
                 
-                token_string = GetStringToNextWhitespace(tokens,
-                                                         file_data,
-                                                         &i);
+                token_string = get_string_to_next_whitespace(tokens,
+                                                             file_data,
+                                                             &i);
             } break;
             case Token_BracketOpen:
             case Token_BracketClose:
@@ -762,7 +761,7 @@ TokenizeFileData(char *file_data)
             {
                 tokens[counter].token_type = tokens[i].token_type;
                 
-                token_string = ArenaAlloc(2);
+                token_string = arena_alloc(2);
                 
                 token_string[0] = file_data[i];
                 token_string[1] = '\0';
@@ -771,9 +770,9 @@ TokenizeFileData(char *file_data)
             {
                 tokens[counter].token_type = tokens[i].token_type;
                 token_string =
-                    GetStringToNextNonWhitespace(tokens,
-                                                 file_data,
-                                                 &i);
+                    get_string_to_next_non_whitespace(tokens,
+                                                      file_data,
+                                                      &i);
             } break;
             default:
             {
@@ -937,8 +936,8 @@ TokenizeFileData(char *file_data)
 /*
    Gets the file name from the path without the extension
   */
-internal char *
-GetFilenameNoExt(char *file_path)
+static char *
+get_filename_no_ext(char *file_path)
 {
     if(file_path == 0)
     {
@@ -962,11 +961,11 @@ GetFilenameNoExt(char *file_path)
         }
     }
     
-    u32 filename_length = GetRange(filename_start, filename_end);
-    char *filename = ArenaAlloc(filename_length + 1);
+    u32 filename_length = get_range(filename_start, filename_end);
+    char *filename = arena_alloc(filename_length + 1);
     
-    CopyStringRange(file_path, filename,
-                    filename_start, filename_end);
+    copy_string_range(file_path, filename,
+                      filename_start, filename_end);
     
     return filename;
 }
@@ -974,8 +973,8 @@ GetFilenameNoExt(char *file_path)
 /*
  Gets the extension of the file from the file path
  */
-internal char *
-GetFileExt(char *file_path)
+static char *
+get_file_ext(char *file_path)
 {
     if(file_path == 0)
     {
@@ -996,11 +995,11 @@ GetFileExt(char *file_path)
         }
     }
     
-    u32 file_ext_length = GetRange(file_ext_start, file_ext_end);
-    char *file_ext = ArenaAlloc(file_ext_length + 1);
+    u32 file_ext_length = get_range(file_ext_start, file_ext_end);
+    char *file_ext = arena_alloc(file_ext_length + 1);
     
-    CopyStringRange(file_path, file_ext,
-                    file_ext_start, file_ext_end);
+    copy_string_range(file_path, file_ext,
+                      file_ext_start, file_ext_end);
     
     return file_ext;
 }
@@ -1008,8 +1007,8 @@ GetFileExt(char *file_path)
 /*
  Gets the directory from the file path
  */
-internal char *
-GetFileWorkingDir(char *file_path)
+static char *
+get_file_working_dir(char *file_path)
 {
     if(file_path == 0)
     {
@@ -1029,17 +1028,17 @@ GetFileWorkingDir(char *file_path)
         }
     }
     
-    u32 working_dir_length = GetRange(working_dir_start, working_dir_end);
-    char *working_dir = ArenaAlloc(working_dir_length + 1);
+    u32 working_dir_length = get_range(working_dir_start, working_dir_end);
+    char *working_dir = arena_alloc(working_dir_length + 1);
     
-    CopyStringRange(file_path, working_dir,
-                    working_dir_start, working_dir_end);
+    copy_string_range(file_path, working_dir,
+                      working_dir_start, working_dir_end);
     
     return working_dir;
 }
 
-internal char *
-ReadFileData(char *file_path)
+static char *
+read_file_data(char *file_path)
 {
     FILE *file = fopen(file_path, "r");
     
@@ -1052,7 +1051,7 @@ ReadFileData(char *file_path)
     u32 file_length = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    char *file_contents = ArenaAlloc(file_length);
+    char *file_contents = arena_alloc(file_length);
     
     fread(file_contents, 1, file_length, file);
     
@@ -1061,34 +1060,34 @@ ReadFileData(char *file_path)
     return file_contents;
 }
 
-internal void
-GenCode(u32 arg_count, char **args)
+static void
+gen_code(u32 arg_count, char **args)
 {
     for (u32 i = 1; i < arg_count; ++i)
     {
         char *file_path = args[i];
-        char *filename_no_ext = GetFilenameNoExt(file_path);
-        char *file_working_dir = GetFileWorkingDir(file_path);
-        char *output_file_path = (char *)ArenaAlloc(128);
+        char *filename_no_ext = get_filename_no_ext(file_path);
+        char *file_working_dir = get_file_working_dir(file_path);
+        char *output_file_path = (char *)arena_alloc(128);
         
         strcpy(output_file_path, file_working_dir);
         strcat(output_file_path, filename_no_ext);
         
-        char *file_contents = ReadFileData(file_path);
+        char *file_contents = read_file_data(file_path);
         
         if (file_contents == 0)
         {
             fprintf(stderr, "Failed to read file %s.\n", file_path);
-            ClearArena();
+            clear_arena();
             continue;
         }
         
-        Tokenizer tokenizer = TokenizeFileData(file_contents);
+        Tokenizer tokenizer = tokenize_file_data(file_contents);
         
         if (tokenizer.tokens == 0)
         {
             fprintf(stderr, "Failed to compile file.\n");
-            ClearArena();
+            clear_arena();
             continue;
         }
         
@@ -1102,42 +1101,41 @@ GenCode(u32 arg_count, char **args)
         }
         
         TemplateHashTable hash_table =
-            GetTemplateHashTable(&tokenizer);
+            get_template_hash_table(&tokenizer);
         
         TemplateTypeRequest type_request =
-            GetTemplateTypeRequests(&tokenizer);
+            get_template_type_requests(&tokenizer);
         
         FILE *output_file = fopen(output_file_path, "w");
         
         for (u32 i = 0; i < type_request.request_num; ++i)
         {
             Template template_at =
-                LookupHashTable(type_request.type_requests[i].template_name,
-                                &hash_table);
+                lookup_hash_table(type_request.type_requests[i].template_name,
+                                  &hash_table);
             
-            ReplaceTypeName(&template_at,
-                            type_request.type_requests[i].type_name,
-                            type_request.type_requests[i].struct_name);
+            replace_type_name(&template_at,
+                              type_request.type_requests[i].type_name,
+                              type_request.type_requests[i].struct_name);
             
             if (template_at.template_name != 0)
             {
-                WriteTemplateToFile(&template_at, output_file);
+                write_template_to_file(&template_at, output_file);
             }
             
             fprintf(output_file, "\n");
         }
         
         fclose(output_file);
-        
+
         file_ext[0] = '\0';
-        ClearArena();
-        
+        clear_arena();
         printf("%s -> %s\n", file_path, output_file_path);
     }
 }
 
-s32
-main(s32 arg_count, char **args)
+i32
+main(i32 arg_count, char **args)
 {
     if (arg_count < 2)
     {
@@ -1145,16 +1143,12 @@ main(s32 arg_count, char **args)
         return -1;
     }
     
-    f64 time_start = GetTime();
-    {
-        InitArena(gigabytes((u32)2));
-        GenCode(cast(arg_count, u32), args);
-        FreeArena();
-    }
-    f64 time_end = GetTime();
+    f32 time_start = get_time();
+    init_arena(gigabytes((u32)2));
+    gen_code(cast(arg_count, u32), args);
+    free_arena();
+    f32 time_end = get_time();
     
-    printf("Code generation succeeded in %f seconds.\n",
-           time_end - time_start);
-    
+    //printf("Code generation in %f seconds.\n", time_end - time_start);
     return 0;
 }

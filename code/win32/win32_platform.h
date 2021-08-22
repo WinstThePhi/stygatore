@@ -1,10 +1,10 @@
-#ifndef WIN32_PLATFORM_H
+#if !defined(WIN32_PLATFORM_H)
 #define WIN32_PLATFORM_H
 
-internal f64 GetTime();
+internal f64 get_time();
 
-internal void *RequestMem(u32 size);
+internal void *request_mem(u32 size);
 
-internal void FreeMem(void *mem, u32 size);
+internal void free_mem(void *mem, u32 size);
 
 #endif 

@@ -1,11 +1,10 @@
-#ifndef LINUX_PLATFORM_H
+#if !defined(LINUX_PLATFORM_H)
 #define LINUX_PLATFORM_H
 
-internal f32 GetTime();
+static f32 get_time();
 
-// TODO(winston): write the linux memory functions
-internal void *RequestMem(u32 size);
+static void *request_mem(u32 size);
 
-internal void FreeMem(void *mem, u32 size);
+static void free_mem(void *mem, u32 size);
 
 #endif

@@ -3,12 +3,12 @@
 #include <stdint.h>
 
 #include "win32_platform.h"
-#include "../layer.h"
+#include "layer.h"
 
 global LARGE_INTEGER performance_frequency;
 
-internal 
-f64 GetTime()
+internal f64 
+get_time()
 {
     static b32 initialized = FALSE;
     if(!initialized)
@@ -22,13 +22,13 @@ f64 GetTime()
     QueryPerformanceCounter(&time_int);
     
     f64 time = 
-        (f64)time_int.QuadPart / (f64)performance_frequency.QuadPart;
+    (f64)time_int.QuadPart / (f64)performance_frequency.QuadPart;
     
     return time;
 }
 
-internal 
-void *RequestMem(u32 size) 
+internal void *
+request_mem(u32 size) 
 {
     return VirtualAlloc(0,
                         size,
@@ -37,7 +37,7 @@ void *RequestMem(u32 size)
 }
 
 internal void 
-FreeMem(void *mem, u32 size)
+free_mem(void *mem, u32 size)
 {
     VirtualFree(mem,
                 0,
