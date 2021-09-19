@@ -1,7 +1,6 @@
 #ifndef GEN_STRUCT_H
 #define GEN_STRUCT_H
 
-typedef enum TokenTypes TokenTypes;
 enum TokenTypes
 {
 		Token_Unknown,
@@ -27,41 +26,36 @@ enum TokenTypes
 		Token_EndOfFile
 };
 
-typedef struct Token Token;
 struct Token
 {
-		TokenTypes token_type;
+		enum TokenTypes token_type;
 		char *token_data;
 };
 
-typedef struct Tokenizer Tokenizer;
 struct Tokenizer
 {
 		u32 token_num;
-		Token *tokens;
-		Token *at;
+		struct Token *tokens;
+		struct Token *at;
 };
 
-typedef struct Template Template;
 struct Template
 {
 		char *template_name;
 		char *template_type_name;
     
-		Tokenizer tokenizer;
+		struct Tokenizer tokenizer;
     
 		/* in case of name collisions */
-		Template *next;
+		struct Template *next;
 };
 
-typedef struct TemplateHashTable TemplateHashTable;
 struct TemplateHashTable
 {
-		Template *templates;
+		struct Template *templates;
 		u32 num;
 };
 
-typedef struct MemoryArena MemoryArena;
 struct MemoryArena
 {
 		void *memory;
@@ -71,7 +65,6 @@ struct MemoryArena
 		u32 size_left;
 };
 
-typedef struct TypeRequest TypeRequest;
 struct TypeRequest
 {
 		char *template_name;
@@ -80,44 +73,42 @@ struct TypeRequest
 		char *struct_name;
 };
 
-typedef struct TemplateTypeRequest TemplateTypeRequest;
 struct TemplateTypeRequest
 {
-		TypeRequest *type_requests;
+		struct TypeRequest *type_requests;
     
 		u32 request_num;
 };
 
-static u64 GetHash(char *str);
-static void InitArena(u32 size);
-static void FreeArena();
-static void *ArenaAlloc(u32 size);
-static void ClearArena();
-static void CopyStringRange(char *input_string, char *output_string, u32 start, u32 end);
-static void PrintTokenType(Token token, FILE *file);
-static b8 PrintTokenString(Token token, FILE *file);
-static void PrintTokenizerAt(Tokenizer *tokenizer, FILE *file);
-static void ResetTokenizer(Tokenizer *tokenizer);
-static b8 IncrementTokenizerNoWhitespace(Tokenizer *tokenizer);
-static b8 IncrementTokenizerAll(Tokenizer *tokenizer);
-static Token *GetTokenizerAt(Tokenizer *tokenizer);
-static void WriteTemplateToFile(Template *templates, FILE *file);
-static u32 GetNumberOfTemplates(Tokenizer *tokenizer);
-static char *GetTemplateName(Tokenizer *tokenizer);
-static char *GetTemplateTypeName(Tokenizer *tokenizer);
-static Template GetTemplateFromTokens(Tokenizer *tokenizer);
-static TemplateHashTable GetTemplateHashTable(Tokenizer *tokenizer);
-static Template LookupHashTable(char *template_name, TemplateHashTable *hash_table);
-static u32 GetNumberOfTemplateTypeRequests(Tokenizer *tokenizer);
-static TemplateTypeRequest GetTemplateTypeRequests(Tokenizer *file_tokens);
-static void ReplaceTypeName(Template *templates, char *type_name, char *struct_name);
-static char *GetStringToNextWhitespace(Token *tokens, char *file_data, u32 *start_index);
-static char *GetStringToNextNonWhitespace(Token *tokens, char *file_data, u32 *start_index);
-static Tokenizer TokenizeFileData(char *file_data);
-static char *GetFilenameNoExt(char *file_path);
-static char *GetFileExt(char *file_path);
-static char *GetFileWorkingDir(char *file_path);
-static char *ReadFileData(char *file_path);
-static void GenCode(u32 arg_count, char ** args);
+static u64 get_hash(char *str);
+static void init_arena(u32 size);
+static void free_arena();
+static void *arena_alloc(u32 size);
+static void clear_arena();
+static void copy_string_range(char *input_string, char *output_string, u32 start, u32 end);
+static void print_token_type(struct Token token, FILE *file);
+static b8 print_token_string(struct Token token, FILE *file);
+static void print_tokenizer_at(struct Tokenizer *tokenizer, FILE *file);
+static void reset_tokenizer(struct Tokenizer *tokenizer);
+static b8 increment_tokenizer_no_whitespace(struct Tokenizer *tokenizer);
+static b8 increment_tokenizer_all(struct Tokenizer *tokenizer);
+static void write_template_to_file(struct Template *templates, FILE *file);
+static u32 get_number_of_templates(struct Tokenizer *tokenizer);
+static char *get_template_name(struct Tokenizer *tokenizer);
+static char *get_template_type_name(struct Tokenizer *tokenizer);
+static struct Template get_template_from_tokens(struct Tokenizer *tokenizer);
+static struct TemplateHashTable get_template_hash_table(struct Tokenizer *tokenizer);
+static struct Template lookup_hash_table(char *template_name, struct TemplateHashTable *hash_table);
+static u32 get_number_of_template_type_requests(struct Tokenizer *tokenizer);
+static struct TemplateTypeRequest get_template_type_requests(struct Tokenizer *file_tokens);
+static void replace_type_name(struct Template *templates, char *type_name, char *struct_name);
+static char *get_string_to_next_whitespace(struct Token *tokens, char *file_data, u32 *start_index);
+static char *get_string_to_next_non_whitespace(struct Token *tokens, char *file_data, u32 *start_index);
+static struct Tokenizer tokenize_file_data(char *file_data);
+static char *get_filename_no_ext(char *file_path);
+static char *get_file_ext(char *file_path);
+static char *get_file_working_dir(char *file_path);
+static char *read_file_data(char *file_path);
+static void gen_code(u32 arg_count, char ** args);
 
 #endif
