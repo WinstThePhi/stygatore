@@ -8,7 +8,7 @@
 #include <assert.h>
 
 #include "layer.h"
-#include "gen_struct.h"
+#include "stygatore.h"
 
 #ifdef _WIN32
 #include "win32/win32_platform.c"
@@ -27,13 +27,13 @@ static char file_ext[16];
 static u64
 get_hash(char *str)
 {
-	u64 hash = 5381;
-	i32 c = 0;
+    u64 hash = 5381;
+    i32 c = 0;
     
-	while ((c = *str++)) {
-		hash = ((hash << 5) + hash) + c;
-	}
-	return hash;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c;
+    }
+    return hash;
 }
 
 /* initializes static arena for program use */
@@ -43,9 +43,9 @@ init_arena(u32 size)
     void *memory = request_mem(size);
     void_check(memory);
     
-	arena.memory = memory;
-	arena.size = size;
-	arena.size_left = size;
+    arena.memory = memory;
+    arena.size = size;
+    arena.size_left = size;
 }
 
 static void
@@ -54,30 +54,30 @@ free_arena()
     free_mem(arena.memory, arena.size);
     
     arena.memory = 0;
-	arena.size = 0;
-	arena.size_left = 0;
+    arena.size = 0;
+    arena.size_left = 0;
 }
 
 /*
-allocates specified amount of memory and
-returns a pointer to the start of the memory
+  allocates specified amount of memory and
+  returns a pointer to the start of the memory
 */
 static void *
 arena_alloc(u32 size)
 {
-	++size;
+    ++size;
     
-	void *result = 0;
+    void *result = 0;
     
-	assert(arena.size_left >= size);
+    assert(arena.size_left >= size);
     
-	result = &((cast(arena.memory, char *))[arena.offset]);
+    result = &((cast(arena.memory, char *))[arena.offset]);
     
-	arena.offset += size;
-	arena.size_left -= size;
-	memset(result, 0, size);
+    arena.offset += size;
+    arena.size_left -= size;
+    memset(result, 0, size);
     
-	return result;
+    return result;
 }
 
 /* resets arena offset but does not zero memory */
@@ -95,45 +95,45 @@ copy_string_range(char *input_string, char *output_string,
 {
     u32 string_length = range(start, end);
     
-	for (u32 i = 0; i < string_length; ++i) {
-		output_string[i] = input_string[i + start];
-	}
+    for (u32 i = 0; i < string_length; ++i) {
+        output_string[i] = input_string[i + start];
+    }
     
-	output_string[string_length] = '\0';
+    output_string[string_length] = '\0';
 }
 
 /*
- debug printing for tokenizer
- prints token type to specified FILE pointer.
- utility function for print_token_string
- */
+  debug printing for tokenizer
+  prints token type to specified FILE pointer.
+  utility function for print_token_string
+*/
 static void
 print_token_type(struct Token token, FILE *file)
 {
-	switch (token.token_type) {
-#define token_print_case(token_const)                           \
-    case token_const:                                           \
-        fprintf(file, "%s", #token_const);                      \
-        break
+    switch (token.token_type) {
+#define token_print_case(token_const)           \
+        case token_const:                       \
+            fprintf(file, "%s", #token_const);  \
+            break
         
-    token_print_case(Token_Template);
-    token_print_case(Token_TemplateStart);
-    token_print_case(Token_TemplateEnd);
-    token_print_case(Token_TemplateTypeName);
-    token_print_case(Token_TemplateType);
-    token_print_case(Token_TemplateName);
-    token_print_case(Token_TemplateNameStatement);
-    token_print_case(Token_TemplateTypeIndicator);
-    token_print_case(Token_GenStructName);
-    token_print_case(Token_Identifier);
-    token_print_case(Token_Whitespace);
-    token_print_case(Token_BracketOpen);
-    token_print_case(Token_BracketClose);
-    token_print_case(Token_ParentheticalOpen);
-    token_print_case(Token_ParentheticalClose);
-    token_print_case(Token_Semicolon);
-    token_print_case(Token_EndOfFile);
-    token_print_case(Token_FeedSymbol);
+        token_print_case(Token_Template);
+        token_print_case(Token_TemplateStart);
+        token_print_case(Token_TemplateEnd);
+        token_print_case(Token_TemplateTypeName);
+        token_print_case(Token_TemplateType);
+        token_print_case(Token_TemplateName);
+        token_print_case(Token_TemplateNameStatement);
+        token_print_case(Token_TemplateTypeIndicator);
+        token_print_case(Token_GenStructName);
+        token_print_case(Token_Identifier);
+        token_print_case(Token_Whitespace);
+        token_print_case(Token_BracketOpen);
+        token_print_case(Token_BracketClose);
+        token_print_case(Token_ParentheticalOpen);
+        token_print_case(Token_ParentheticalClose);
+        token_print_case(Token_Semicolon);
+        token_print_case(Token_EndOfFile);
+        token_print_case(Token_FeedSymbol);
 #undef token_print_case
     default:
         fprintf(file, "Unknown token");
@@ -142,8 +142,8 @@ print_token_type(struct Token token, FILE *file)
 }
 
 /*
-Prints the string that token is holding to specified stream.
-Returns FALSE if end of file and TRUE if anything else.
+  Prints the string that token is holding to specified stream.
+  Returns FALSE if end of file and TRUE if anything else.
 */
 static b8
 print_token_string(struct Token token, FILE *file)
@@ -159,14 +159,14 @@ print_token_string(struct Token token, FILE *file)
     
     for (u32 i = 0; i < strlen(token.token_data); ++i) {
         switch (token.token_data[i]) {
-#define token_print(token_case, token_string) \
-        case token_case:                      \
-            fprintf(file, token_string);      \
-            break
+#define token_print(token_case, token_string)   \
+            case token_case:                    \
+                fprintf(file, token_string);    \
+                break
             
-        token_print('\n', "\\n");
-        token_print('\t', "\\t");
-        token_print(' ', "<space>");
+            token_print('\n', "\\n");
+            token_print('\t', "\\t");
+            token_print(' ', "<space>");
 #undef token_print
         default:
             fprintf(file, "%c", token.token_data[i]);
@@ -194,9 +194,9 @@ reset_tokenizer(struct Tokenizer *tokenizer)
 }
 
 /*
-Increments the tokenizer at pointer, skips all whitespace and semicolons
-Returns FALSE if hits end of file or gets out of array bounds
-Returns TRUE if successfully incremented
+  Increments the tokenizer at pointer, skips all whitespace and semicolons
+  Returns FALSE if hits end of file or gets out of array bounds
+  Returns TRUE if successfully incremented
 */
 static b8
 increment_tokenizer_no_whitespace(struct Tokenizer *tokenizer)
@@ -214,10 +214,10 @@ increment_tokenizer_no_whitespace(struct Tokenizer *tokenizer)
 }
 
 /*
- Increments tokenizer by token, skipping nothing
- Returns FALSE if hits end of file or out of array bounds
- Returns TRUE if successfully incremented
- */
+  Increments tokenizer by token, skipping nothing
+  Returns FALSE if hits end of file or out of array bounds
+  Returns TRUE if successfully incremented
+*/
 static b8
 increment_tokenizer_all(struct Tokenizer *tokenizer)
 {
@@ -231,8 +231,8 @@ increment_tokenizer_all(struct Tokenizer *tokenizer)
 }
 
 /*
- Writes contents of a template to specified file
- */
+  Writes contents of a template to specified file
+*/
 static void
 write_template_to_file(struct Template *templates, FILE *file)
 {
@@ -254,10 +254,10 @@ write_template_to_file(struct Template *templates, FILE *file)
 }
 
 /*
- Gets the number of templates in a file
- Takes in a tokenized file
- Returns a u32 with the number of templates in file
- */
+  Gets the number of templates in a file
+  Takes in a tokenized file
+  Returns a u32 with the number of templates in file
+*/
 static u32
 get_number_of_templates(struct Tokenizer *tokenizer)
 {
@@ -276,10 +276,10 @@ get_number_of_templates(struct Tokenizer *tokenizer)
 }
 
 /*
- Gets the template name
- Takes in a tokenizer where the tokens pointer points to the first
- struct Token in the template
- */
+  Gets the template name
+  Takes in a tokenizer where the tokens pointer points to the first
+  struct Token in the template
+*/
 static char *
 get_template_name(struct Tokenizer *tokenizer)
 {
@@ -299,9 +299,9 @@ get_template_name(struct Tokenizer *tokenizer)
 }
 
 /*
- Takes in a template tokenizer and
- Returns the name of template
- */
+  Takes in a template tokenizer and
+  Returns the name of template
+*/
 static char *
 get_template_type_name(struct Tokenizer *tokenizer)
 {
@@ -322,12 +322,12 @@ get_template_type_name(struct Tokenizer *tokenizer)
 
 /*
   Gets struct struct Template from tokenizer where tokenizer starts at the
- start of the template
+  start of the template
 
-TODO (winston): complete this function and maybe implement a more
- versatile usage where the parameter does not have to point to the first
- token in the template.
- */
+  TODO (winston): complete this function and maybe implement a more
+  versatile usage where the parameter does not have to point to the first
+  token in the template.
+*/
 static struct Template
 get_template_from_tokens(struct Tokenizer *tokenizer)
 {
@@ -358,8 +358,8 @@ get_template_from_tokens(struct Tokenizer *tokenizer)
 }
 
 /*
- Constructs a hash table from a file tokenizer
- */
+  Constructs a hash table from a file tokenizer
+*/
 static struct TemplateHashTable
 get_template_hash_table(struct Tokenizer *tokenizer)
 {
@@ -405,8 +405,8 @@ get_template_hash_table(struct Tokenizer *tokenizer)
 }
 
 /*
-Pretty intuitive.
-This looks up the definition of the template in the template hash table.
+  Pretty intuitive.
+  This looks up the definition of the template in the template hash table.
 */
 
 static struct Template
@@ -429,10 +429,10 @@ lookup_hash_table(char *template_name, struct TemplateHashTable *hash_table)
 }
 
 /*
- Gets number of template "type requests" in file
- TODO (winston): maybe integrate this into the lexing process
- To speed up things
- */
+  Gets number of template "type requests" in file
+  TODO (winston): maybe integrate this into the lexing process
+  To speed up things
+*/
 static u32
 get_number_of_template_type_requests(struct Tokenizer *tokenizer)
 {
@@ -450,8 +450,8 @@ get_number_of_template_type_requests(struct Tokenizer *tokenizer)
 }
 
 /*
- Gets the type of template requested
- */
+  Gets the type of template requested
+*/
 static struct TemplateTypeRequest
 get_template_type_requests(struct Tokenizer *file_tokens)
 {
@@ -501,8 +501,8 @@ get_template_type_requests(struct Tokenizer *file_tokens)
 }
 
 /*
- Replace the type name in a template
- */
+  Replace the type name in a template
+*/
 static void
 replace_type_name(struct Template *templates, char *type_name, char *struct_name)
 {
@@ -519,7 +519,7 @@ replace_type_name(struct Template *templates, char *type_name, char *struct_name
             tokenizer_at(&templates->tokenizer)->token_data =
                 type_name_real;
         } else if (tokenizer_at(&templates->tokenizer)->token_type ==
-                 Token_TemplateNameStatement) {
+                   Token_TemplateNameStatement) {
             tokenizer_at(&templates->tokenizer)->token_data = struct_name_real;
         }
     } while (increment_tokenizer_no_whitespace(&templates->tokenizer));
@@ -527,9 +527,9 @@ replace_type_name(struct Template *templates, char *type_name, char *struct_name
 }
 
 /*
- Gets the pointer of the string to the next whitespace
- or to the next semicolon or parenthesis
- */
+  Gets the pointer of the string to the next whitespace
+  or to the next semicolon or parenthesis
+*/
 static char *
 get_string_to_next_whitespace(struct Token *tokens,
                               char *file_data,
@@ -563,10 +563,10 @@ get_string_to_next_whitespace(struct Token *tokens,
 }
 
 /*
- Does the opposite of the previous function
- Allocates string and points it to the from the start
- and null-terminates at the next whitespace
- */
+  Does the opposite of the previous function
+  Allocates string and points it to the from the start
+  and null-terminates at the next whitespace
+*/
 static char *
 get_string_to_next_non_whitespace(struct Token *tokens,
                                   char *file_data,
@@ -600,11 +600,11 @@ get_string_to_next_non_whitespace(struct Token *tokens,
 }
 
 /*
- Lexes the file and tokenizes all data
+  Lexes the file and tokenizes all data
 
-TODO (winston): split this into multiple functions
- to shorten main function
- */
+  TODO (winston): split this into multiple functions
+  to shorten main function
+*/
 static struct Tokenizer
 tokenize_file_data(char *file_data)
 {
@@ -814,8 +814,8 @@ tokenize_file_data(char *file_data)
 }
 
 /*
-   Gets the file name from the path without the extension
-  */
+  Gets the file name from the path without the extension
+*/
 static char *
 get_filename_no_ext(char *file_path)
 {
@@ -846,8 +846,8 @@ get_filename_no_ext(char *file_path)
 }
 
 /*
- Gets the extension of the file from the file path
- */
+  Gets the extension of the file from the file path
+*/
 static char *
 get_file_ext(char *file_path)
 {
@@ -877,8 +877,8 @@ get_file_ext(char *file_path)
 }
 
 /*
- Gets the directory from the file path
- */
+  Gets the directory from the file path
+*/
 static char *
 get_file_working_dir(char *file_path)
 {
@@ -994,8 +994,7 @@ gen_code(u32 arg_count, char **args)
     }
 }
 
-i32
-main(i32 arg_count, char **args)
+i32 main(i32 arg_count, char **args)
 {
     if (arg_count < 2) {
         fprintf(stderr, "Specify file name as first argument");
